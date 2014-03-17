@@ -1,4 +1,5 @@
 #!/bin/sh
+# First run script
 
 hostname=$(date +"%m-%d-%y-%N" | md5sum | sed 's/[^0-9]//g')
 echo $hostname > /etc/hostname
