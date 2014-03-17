@@ -1,1 +1,0 @@
-fence_cdu -a "$power_address" -n "$power_id" -l "$power_user" -p "$power_pass" -o "$power_mode"
