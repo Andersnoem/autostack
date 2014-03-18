@@ -1,6 +1,6 @@
 DEFAULT menu
 PROMPT 0
-MENU TITLE Autostack, Powered by Cobbler :)
+MENU TITLE Autostack
 TIMEOUT 50
 TOTALTIMEOUT 6000
 ONTIMEOUT Ubuntu-Server13.10
