@@ -1,0 +1,11 @@
+1
+homer
+marge
+bart
+lisa
+maggie
+moe
+barney
+carl
+lenny
+burns
