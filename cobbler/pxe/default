@@ -5,31 +5,10 @@ TIMEOUT 50
 TOTALTIMEOUT 6000
 ONTIMEOUT Ubuntu-Server13.10
 
-#LABEL local
- #       MENU LABEL (local)
-  #      MENU DEFAULT
-   #     LOCALBOOT -1
-
 LABEL Ubuntu-Server13.10
         kernel /images/ubuntu-server-iso-i386/linux
         MENU LABEL Ubuntu-Server13.10
         append initrd=/images/ubuntu-server-iso-i386/initrd.gz ksdevice=bootif lang=  locale=en_US priority=critical text interface=auto auto-install/enable=true priority=critical url=http://10.0.0.254/cblr/svc/op/ks/profile/ubuntu-server-iso-i386 hostname=ubuntu-server-iso-i386 domain=local.lan suite=saucy
         ipappend 2
-
-
-
-#LABEL memtest86+_multiboot.bin
- #       kernel /images/memtest86+_multiboot.bin
-  #      MENU LABEL memtest86+_multiboot.bin
-   #     
-    #    ipappend 2
-
-#LABEL memtest86+.bin
- #       kernel /images/memtest86+.bin
-  #      MENU LABEL memtest86+.bin
-   #     
-    #    ipappend 2
-
-
 
 MENU end
