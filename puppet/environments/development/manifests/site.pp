@@ -1,12 +1,25 @@
+
 node jerry {
-  notify { "env": message => "ENVIRONMENT=development" }
- ### RabbitMQ ###
-  #include '::rabbitmq'
-  #class { '::rabbitmq':
-  #service_manage    => false
-  #port              => '5672',
-  #delete_guest_user => true,
-  #}
+  notify { "env": message => "ENVIRONMENT=development" }  
+
+  ### MySQL ###
+  class { '::mysql::server':
+    config_hash	=> { 'root_password' => 'SRVPW',
+                     'bind_address' => '0.0.0.0' }
+  }
+
+  ### RabbitMQ ###
+  class { 'rabbitmq::server':
+    port              => '5672',
+    delete_guest_user => false,
+   }
+
+  exec { 'set guest pw':
+    command	=> "rabbitmqctl change_password guest SRVPW",
+    path	=> ["/usr/sbin", "/bin", "/usr/bin"],
+    user	=> "root",
+    require	=> Class['rabbitmq::server'],
+  }
 
  ### KEYSTONE ###
   class { 'keystone':
@@ -33,12 +46,11 @@ node jerry {
     internal_url     => "http://127.0.0.1:8774/v2/%(tenant_id)s",
   }
 
-  class { 'mysql::server': }
-
   class { 'keystone::db::mysql':
     password      => 'SRVPW',
     allowed_hosts => '%',
   }
+
   ### GLANCE ###
   class { 'glance::api':
     verbose           => true,
@@ -70,35 +82,10 @@ node jerry {
     internal_address => '127.0.0.1',
     region           => 'regionOne',
   }
+
  ##### NOVA    #####
-#  class { 'nova':
-#    database_connection => 'mysql://nova:SRVPW@127.0.0.1/nova',
-#    rabbit_userid       => 'guest',
-#    rabbit_password     => 'SRVPW',
-#    image_service       => 'nova.image.glance.GlanceImageService',
-#    glance_api_servers  => 'localhost:9292',
-#    verbose             => false,
-#    rabbit_host         => '127.0.0.1',
-#  }
-#  class { 'nova::db::mysql':
-#    password      => 'SRVPW',
-#    allowed_hosts => '%',
-#  }
 
-#  class { 'nova::compute':
-#    enabled	         => true,
-#    vnc_enabled          => true,
-#  }
-
-#  class { 'nova::compute::libvirt':
-#    migration_support => true,
-#    vncserver_listen  => '0.0.0.0',
-#  }
-
-#  class { 'nova::network::neutron':
-#    neutron_admin_password  => 'SRVPW',
-#  }
-#### NOVA TEST ####
+#### NOVA MYSQL DB ####
 # Configure a MySQL database for Nova
   class { 'nova::db::mysql':
     user          => 'nova',
@@ -115,13 +102,6 @@ node jerry {
     rabbit_host        => '127.0.0.1',
   }
 
-# Configure Nova to use RabbitMQ
-  class { 'nova::rabbitmq':
-    #rabbit_host     => '127.0.0.1',
-    #rabbit_userid   => 'guest',
-    #rabbit_password => 'SRVPW',
-  } 
-    
 # Install and configure nova-api
   class { 'nova::api':
     enabled        => true,
@@ -136,16 +116,6 @@ node jerry {
   class { 'nova::consoleauth': enabled => true }
 
 # Configure nova-network
-#class { 'nova::network': 
-#  enabled            => true,
-#  network_manager    => 'nova.network.manager.FlatDHCPManager',
-#  private_interface  => eth1,
-#  public_interface   => eth0,
-#  fixed_range        => '10.0.0.0/8',
-#  num_networks       => '255',
-#}
-
-# Configure nova-network
   class { 'nova::network': 
     enabled            => true,
     network_manager    => 'nova.network.manager.VlanManager',
@@ -158,12 +128,12 @@ node jerry {
     }
   }
 
-# Configure Keystone for Nova
-class { 'nova::keystone::auth':
-  password => 'SRVPW',
-}
+  # Configure Keystone for Nova
+    class { 'nova::keystone::auth':
+      password => 'SRVPW',
+  }
 
-Class['mysql::server'] -> Class['nova']
+  Class['mysql::server'] -> Class['nova']
   
  ##### Neutron #####
 
@@ -195,6 +165,22 @@ Class['mysql::server'] -> Class['nova']
     tenant_network_type => 'vlan',
     network_vlan_ranges => 'physnet:2000:2999',
   }
+
+  ### HORIZON ###
+  class { 'memcached':
+    listen_ip => '127.0.0.1',
+    tcp_port  => '11211',
+    udp_port  => '11211',
+  }
+
+  class { '::horizon':
+    cache_server_ip     => '127.0.0.1',
+    cache_server_port   => '11211',
+    secret_key         => '12345',
+    swift               => false,
+    django_debug        => 'True',
+    api_result_limit    => '2000',
+  }
 }
 
 node bania {
@@ -224,7 +210,7 @@ node bania {
   }
 }
 
-node bubbleboy {
+node nostrand {
   notify { "env": message => "ENVIRONMENT=development" }
   class { 'nova':
     database_connection => 'mysql://nova:SRVPW@10.0.0.1/nova',
@@ -239,8 +225,12 @@ node bubbleboy {
   class { 'nova::compute':
     enabled                       => true,
     vnc_enabled                   => true,
-
   }
+  class { 'nova::conductor':
+    enabled        => true,
+    ensure_package => 'present'
+  }
+
 
   class { 'nova::compute::libvirt':
     vncserver_listen  => '0.0.0.0',
